@@ -1,0 +1,691 @@
+{% extends base_template %}
+
+{% block title %}Visitor Statistics{% endblock %}
+
+{% block content %}
+<section class="stats-page">
+    <div class="container">
+        <div class="stats-header">
+            {% if visitor_stats_home_url_name %}
+            <a href="{% url visitor_stats_home_url_name %}" class="btn btn-secondary">← Back</a>
+            {% endif %}
+            <h1>Visitor Statistics</h1>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card stat-card-active">
+                <div class="stat-number">
+                    <span class="pulse-dot"></span>
+                    {{ active_count }}
+                </div>
+                <div class="stat-label">Active Now</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_visitors }}</div>
+                <div class="stat-label">Total Page Views</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ unique_total }}</div>
+                <div class="stat-label">Unique Visitors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ today_visitors }}</div>
+                <div class="stat-label">Today's Views</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ unique_today }}</div>
+                <div class="stat-label">Unique Today</div>
+            </div>
+        </div>
+
+        <!-- Currently Active Visitors -->
+        {% if active_visitors %}
+        <div class="stats-section active-section">
+            <h2><span class="pulse-dot"></span> Currently Active</h2>
+            <div class="active-visitors-list">
+                {% for visitor in active_visitors %}
+                <div class="active-visitor-item">
+                    <div class="active-visitor-info">
+                        <span class="active-visitor-location">
+                            {% if visitor.city and visitor.country %}
+                                {{ visitor.city }}, {{ visitor.country }}
+                            {% elif visitor.country %}
+                                {{ visitor.country }}
+                            {% else %}
+                                {{ visitor.ip_address }}
+                            {% endif %}
+                        </span>
+                        <span class="active-visitor-page">{{ visitor.page }}</span>
+                    </div>
+                    <div class="active-visitor-meta">
+                        <span class="active-visitor-device">
+                            {% if visitor.device_type == 'mobile' %}📱{% elif visitor.device_type == 'tablet' %}📲{% else %}🖥️{% endif %}
+                        </span>
+                        <span class="active-visitor-time">
+                            {{ visitor.visited_at|timesince }} ago
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Charts Row -->
+        <div class="stats-row">
+            <!-- Daily Visits Chart -->
+            <div class="stats-section">
+                <h2>Last 7 Days</h2>
+                <div class="chart-container">
+                    {% for day in daily_visits %}
+                    <div class="chart-bar-wrapper">
+                        <div class="chart-bar" style="--height: {{ day.count }}">
+                            <span class="chart-value">{{ day.count }}</span>
+                        </div>
+                        <span class="chart-label">{{ day.date|date:"D" }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="empty-text">No data yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Top Pages -->
+            <div class="stats-section">
+                <h2>Top Pages</h2>
+                <div class="table-container">
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>Page</th>
+                                <th>Views</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for page in top_pages %}
+                            <tr>
+                                <td class="page-cell">{{ page.page }}</td>
+                                <td class="count-cell">{{ page.count }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="empty-text">No data yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demographics Row -->
+        <div class="stats-row demographics-row">
+            <!-- Device Types -->
+            <div class="stats-section">
+                <h2>📱 Device Types</h2>
+                <div class="demographic-list">
+                    {% for device in device_breakdown %}
+                    <div class="demographic-item">
+                        <span class="demographic-icon">
+                            {% if device.device_type == 'mobile' %}📱{% elif device.device_type == 'tablet' %}📲{% else %}🖥️{% endif %}
+                        </span>
+                        <span class="demographic-label">{{ device.device_type|title }}</span>
+                        <span class="demographic-count">{{ device.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="empty-text">No data yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Top Browsers -->
+            <div class="stats-section">
+                <h2>🌐 Top Browsers</h2>
+                <div class="demographic-list">
+                    {% for browser in top_browsers %}
+                    <div class="demographic-item">
+                        <span class="demographic-label">{{ browser.browser }}</span>
+                        <span class="demographic-count">{{ browser.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="empty-text">No data yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Countries Section -->
+        <div class="stats-section full-width mb-4">
+            <h2>🌍 Top Countries</h2>
+            <div class="countries-grid">
+                {% for country in top_countries %}
+                <div class="country-item">
+                    <span class="country-name">{{ country.country }}</span>
+                    <span class="country-count">{{ country.count }}</span>
+                </div>
+                {% empty %}
+                <p class="empty-text">No data yet</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Visitor Map -->
+        <div class="stats-section full-width mb-4">
+            <h2>📍 Visitor Locations</h2>
+            <div id="visitor-map" class="maps-style"></div>
+        </div>
+
+        <!-- Recent Visitors -->
+        <div class="stats-section full-width mb-4">
+            <h2>Recent Visitors</h2>
+            <div class="table-container">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Location</th>
+                            <th>Device</th>
+                            <th>Browser</th>
+                            <th>Page</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for visitor in recent_visitors %}
+                        <tr>
+                            <td><code>{{ visitor.ip_address }}</code></td>
+                            <td class="location-cell">
+                                {% if visitor.city and visitor.country %}
+                                    {{ visitor.city }}, {{ visitor.country }}
+                                {% elif visitor.country %}
+                                    {{ visitor.country }}
+                                {% else %}
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if visitor.device_type == 'mobile' %}📱{% elif visitor.device_type == 'tablet' %}📲{% elif visitor.device_type == 'desktop' %}🖥️{% else %}<span class="muted">—</span>{% endif %}
+                            </td>
+                            <td class="browser-cell">{{ visitor.browser|default:"—" }}</td>
+                            <td class="page-cell">{{ visitor.page }}</td>
+                            <td>{{ visitor.visited_at|date:"M d, H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="empty-text">No visitors yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.mb-4 {
+    margin-bottom: 32px;
+}
+
+.stats-page {
+    padding: 36px 0;
+    min-height: calc(100vh - 200px);
+}
+
+.stats-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.stats-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.btn-secondary {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+    background: var(--color-bg);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 28px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+}
+
+/* Active Now Card */
+.stat-card-active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: #059669;
+}
+
+.stat-card-active .stat-number {
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.stat-card-active .stat-label {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Pulse Animation */
+.pulse-dot {
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+.stats-section h2 .pulse-dot {
+    background: #10b981;
+    margin-right: 8px;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+}
+
+/* Active Visitors Section */
+.active-section {
+    margin-bottom: 32px;
+    border: 1px solid #10b981;
+}
+
+.active-section h2 {
+    display: flex;
+    align-items: center;
+}
+
+.active-visitors-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.active-visitor-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--color-bg);
+    border-radius: 8px;
+    border-left: 3px solid #10b981;
+}
+
+.active-visitor-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.active-visitor-location {
+    font-weight: 500;
+}
+
+.active-visitor-page {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.active-visitor-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.active-visitor-device {
+    font-size: 1.2rem;
+}
+
+.active-visitor-time {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 32px;
+}
+
+.stats-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 24px;
+}
+
+.stats-section.full-width {
+    grid-column: 1 / -1;
+}
+
+.stats-section h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--color-text);
+}
+
+/* Chart */
+.chart-container {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 180px;
+    gap: 12px;
+    padding-top: 20px;
+}
+
+.chart-bar-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+}
+
+.chart-bar {
+    width: 100%;
+    max-width: 50px;
+    background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    border-radius: 6px 6px 0 0;
+    height: calc(var(--height) * 8px + 20px);
+    max-height: 140px;
+    min-height: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 6px;
+    margin-top: auto;
+}
+
+.chart-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.chart-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 8px;
+}
+
+/* Tables */
+.table-container {
+    overflow-x: auto;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stats-table th,
+.stats-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.stats-table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-table tbody tr:hover {
+    background: var(--color-bg);
+}
+
+.stats-table code {
+    background: var(--color-bg);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.page-cell {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.count-cell {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.empty-text {
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: 20px;
+}
+
+/* Demographics Styles */
+.demographics-row {
+    margin-bottom: 32px;
+}
+
+.demographic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.demographic-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--color-bg);
+    border-radius: 8px;
+}
+
+.demographic-icon {
+    font-size: 1.25rem;
+}
+
+.demographic-label {
+    flex: 1;
+    font-weight: 500;
+}
+
+.demographic-count {
+    font-weight: 600;
+    color: var(--color-primary);
+    background: var(--color-surface);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+/* Countries Grid */
+.countries-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.country-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--color-bg);
+    border-radius: 8px;
+}
+
+.country-name {
+    font-weight: 500;
+}
+
+.country-count {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+/* Additional table styles */
+.location-cell {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.browser-cell {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+.muted {
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .countries-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Visitor Map */
+.leaflet-pane {
+    z-index: 0 !important;
+}
+.maps-style {
+    border: 5px solid rgba(0,0,0,.125);
+}
+#visitor-map {
+    height: 400px;
+    border-radius: 8px;
+    z-index: 1;
+}
+#visitor-map.maps-style {
+    border-radius: 8px;
+}
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link type="text/css" rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link type="text/css" rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const visitors = {{ map_visitors|safe }};
+    const addressPoints = [];
+    for (let i = 0; i < visitors.length; i++) {
+        const v = visitors[i];
+        if (v.latitude != null && v.longitude != null) {
+            addressPoints.push([
+                v.latitude,
+                v.longitude,
+                v.city || '',
+                v.country || 'Unknown'
+            ]);
+        }
+    }
+
+    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        minZoom: 2,
+        maxZoom: 18,
+        attribution: '&copy; <a target="_blank" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+
+    const latlng = L.latLng(20, 0);
+    const map = L.map('visitor-map', {
+        center: latlng,
+        zoom: 2,
+        layers: [tiles]
+    });
+
+    function contentPopup(city, country) {
+        const location = city && country ? city + ', ' + country : country || 'Unknown';
+        return '<strong>' + (city || '—') + '</strong><br/>' + (country || '—');
+    }
+
+    const markers = L.markerClusterGroup();
+    for (let i = 0; i < addressPoints.length; i++) {
+        const a = addressPoints[i];
+        let lat = a[0];
+        let lng = a[1];
+        const city = a[2];
+        const country = a[3];
+        if (typeof lat === 'string' && lat.indexOf(',') !== -1) {
+            lat = parseFloat(lat.replace(',', '.'));
+            lng = parseFloat(lng.replace(',', '.'));
+        }
+        const marker = L.marker(new L.LatLng(lat, lng));
+        marker.bindPopup(contentPopup(city, country));
+        markers.addLayer(marker);
+    }
+    map.addLayer(markers);
+});
+</script>
+{% endblock %}
+
