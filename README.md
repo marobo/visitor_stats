@@ -6,24 +6,26 @@ Reusable Django app: page-view tracking with 30-minute session deduplication, op
 
 ```bash
 git clone https://github.com/marobo/visitor_stats.git
-cd <repo>
+cd visitor_stats
 python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e .
 ```
 
 ## Install
 
-**Standalone repo** (when this app is its own Git repository):
+**This repository** (`pyproject.toml` at the repo root): install from the root URL — **do not** use `#subdirectory=…` (that is only when the installable project lives in a subfolder of a larger repo).
 
 ```bash
 pip install "django-visitor-stats @ git+https://github.com/marobo/visitor_stats.git@v0.1.0"
 ```
 
-**Monorepo subdirectory** (install only the `visitor_stats/` folder from a parent project):
+**Monorepo** (when `pyproject.toml` for this app is under a path like `packages/django-visitor-stats/` inside another repository):
 
 ```bash
-pip install "django-visitor-stats @ git+https://github.com/marobo/visitor_stats.git@v0.1.0#subdirectory=visitor_stats"
+pip install "django-visitor-stats @ git+https://github.com/<owner>/<monorepo>.git@v0.1.0#subdirectory=packages/django-visitor-stats"
 ```
+
+The `#subdirectory=` value must be the folder that **contains** `pyproject.toml`, not the inner Python package directory alone.
 
 **Local editable** (development):
 
