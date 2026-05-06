@@ -671,11 +671,19 @@ document.addEventListener('DOMContentLoaded', function() {
         layers: [tiles]
     });
 
+    function escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function contentPopup(city, country, ip) {
-        var ipLine = ip
-            ? '<br/>IP: <code>' + ip + '</code>'
-            : '';
-        return '<strong>' + (city || '—') + '</strong><br/>' + (country || '—') + ipLine;
+        var ipDisplay = ip ? escapeHtml(ip) : '—';
+        return '<strong>' + escapeHtml(city || '—') + '</strong><br/>'
+            + escapeHtml(country || '—')
+            + '<br/>IP: <code>' + ipDisplay + '</code>';
     }
 
     const markers = L.markerClusterGroup();
