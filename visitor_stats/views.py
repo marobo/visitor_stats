@@ -129,7 +129,7 @@ def visitor_stats(request):
     map_visitors = list(
         Visitor.objects.exclude(latitude__isnull=True)
         .exclude(longitude__isnull=True)
-        .values('city', 'country', 'latitude', 'longitude')[:100]
+        .values('city', 'country', 'latitude', 'longitude', 'ip_address')[:100]
     )
 
     template = getattr(

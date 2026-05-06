@@ -628,6 +628,12 @@
 #visitor-map.maps-style {
     border-radius: 8px;
 }
+.leaflet-popup-content code {
+    background: var(--color-bg);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
 </style>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -646,7 +652,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 v.latitude,
                 v.longitude,
                 v.city || '',
-                v.country || 'Unknown'
+                v.country || 'Unknown',
+                v.ip_address || ''
             ]);
         }
     }
@@ -664,9 +671,11 @@ document.addEventListener('DOMContentLoaded', function() {
         layers: [tiles]
     });
 
-    function contentPopup(city, country) {
-        const location = city && country ? city + ', ' + country : country || 'Unknown';
-        return '<strong>' + (city || '—') + '</strong><br/>' + (country || '—');
+    function contentPopup(city, country, ip) {
+        var ipLine = ip
+            ? '<br/>IP: <code>' + ip + '</code>'
+            : '';
+        return '<strong>' + (city || '—') + '</strong><br/>' + (country || '—') + ipLine;
     }
 
     const markers = L.markerClusterGroup();
@@ -676,12 +685,13 @@ document.addEventListener('DOMContentLoaded', function() {
         let lng = a[1];
         const city = a[2];
         const country = a[3];
+        const ip = a[4];
         if (typeof lat === 'string' && lat.indexOf(',') !== -1) {
             lat = parseFloat(lat.replace(',', '.'));
             lng = parseFloat(lng.replace(',', '.'));
         }
         const marker = L.marker(new L.LatLng(lat, lng));
-        marker.bindPopup(contentPopup(city, country));
+        marker.bindPopup(contentPopup(city, country, ip));
         markers.addLayer(marker);
     }
     map.addLayer(markers);
