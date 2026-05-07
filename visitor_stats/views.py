@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import requests
 from django.conf import settings
-from django.db.models import Count
+from django.db.models import Count, OuterRef, Subquery
 from django.db.models.functions import TruncDate
 from django.shortcuts import render
 from django.utils import timezone
@@ -126,10 +126,24 @@ def visitor_stats(request):
         date=TruncDate('visited_at')
     ).values('date').annotate(count=Count('id')).order_by('date')
 
-    map_visitors = list(
+    _geo_visitors = (
         Visitor.objects.exclude(latitude__isnull=True)
         .exclude(longitude__isnull=True)
-        .values('city', 'country', 'latitude', 'longitude')[:100]
+    )
+    _latest_geo_pk = Subquery(
+        _geo_visitors.filter(ip_address=OuterRef('ip_address'))
+        .order_by('-visited_at')
+        .values('pk')[:1]
+    )
+    _unique_geo_pks = (
+        _geo_visitors.values('ip_address')
+        .annotate(latest_pk=_latest_geo_pk)
+        .values('latest_pk')
+    )
+    map_visitors = list(
+        Visitor.objects.filter(pk__in=_unique_geo_pks)
+        .order_by('-visited_at')
+        .values('city', 'country', 'latitude', 'longitude', 'ip_address')[:100]
     )
 
     template = getattr(
