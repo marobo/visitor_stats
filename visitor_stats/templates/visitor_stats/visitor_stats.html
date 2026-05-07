@@ -679,11 +679,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/"/g, '&quot;');
     }
 
-    function contentPopup(city, country, ip) {
+    function formatCoord(n) {
+        var x = typeof n === 'number' && !isNaN(n) ? n : parseFloat(String(n).replace(',', '.'));
+        return (typeof x === 'number' && !isNaN(x)) ? x.toFixed(5) : '—';
+    }
+
+    function contentPopup(city, country, ip, lat, lng) {
         var ipDisplay = ip ? escapeHtml(ip) : '—';
+        var latStr = escapeHtml(formatCoord(lat));
+        var lngStr = escapeHtml(formatCoord(lng));
         return '<strong>' + escapeHtml(city || '—') + '</strong><br/>'
             + escapeHtml(country || '—')
-            + '<br/>IP: <code>' + ipDisplay + '</code>';
+            + '<br/>IP: <code>' + ipDisplay + '</code>'
+            + '<br/>Latitude: <code>' + latStr + '</code>'
+            + '<br/>Longitude: <code>' + lngStr + '</code>';
     }
 
     const markers = L.markerClusterGroup();
@@ -697,9 +706,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof lat === 'string' && lat.indexOf(',') !== -1) {
             lat = parseFloat(lat.replace(',', '.'));
             lng = parseFloat(lng.replace(',', '.'));
+        } else {
+            lat = parseFloat(lat);
+            lng = parseFloat(lng);
         }
         const marker = L.marker(new L.LatLng(lat, lng));
-        marker.bindPopup(contentPopup(city, country, ip));
+        marker.bindPopup(contentPopup(city, country, ip, lat, lng));
         markers.addLayer(marker);
     }
     map.addLayer(markers);
